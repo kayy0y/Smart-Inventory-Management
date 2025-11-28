@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body { background: #f4f6f8; display: flex; min-height: 100vh; }
+    
+    /* Sidebar */
+    .sidebar { width: 240px; background: #1e40af; color: #fff; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px; transition: 0.3s; }
+    .sidebar.collapsed { width: 70px; }
+    .sidebar .logo { font-size: 20px; font-weight: bold; margin-bottom: 30px; }
+    .sidebar .nav-item { padding: 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.3s; }
+    .sidebar .nav-item.active, .sidebar .nav-item:hover { background: rgba(255,255,255,0.2); }
+    .nav-text { display: inline; }
+    .sidebar.collapsed .nav-text { display: none; }
+    
+    /* Main content */
+    .main { flex: 1; display: flex; flex-direction: column; }
+    .top-bar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+    .search-container { position: relative; flex:1; max-width: 500px; }
+    .search-container input { width: 100%; padding: 10px 12px 10px 35px; border-radius: 8px; border: 1px solid #ccc; }
+    .search-container .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; }
+    
+    /* Content area */
+    .content { padding: 30px; overflow-y: auto; flex:1; }
+    h1 { font-size: 28px; color: #1e40af; margin-bottom: 5px; }
+    p.subtitle { font-size: 14px; color: #6b7280; margin-bottom: 25px; }
+    
+    /* Stats cards */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 15px; margin-bottom: 30px; }
+    .card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: 0.3s; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.12); }
+    .card .label { color:#6b7280; font-size:13px; margin-bottom:5px; }
+    .card .value { font-size:24px; font-weight:600; color:#1f2937; }
+    
+    /* Charts */
+    .charts { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 30px; }
+    .chart-card { background:#fff; padding:20px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+    .chart-card canvas { width:100% !important; height:250px !important; }
+    
+    /* Patients & Appointments tables */
+    .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+    .table-card { background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+    .patient-card, .appointment-card { padding:10px; border-radius:8px; background:#f9fafb; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+    .status { font-size:12px; padding:3px 8px; border-radius:12px; font-weight:600; }
+    .Admitted { background:#dbeafe; color:#1e40af; }
+    .Outpatient { background:#d1fae5; color:#065f46; }
+    .Surgery { background:#e9d5ff; color:#6b21a8; }
+    .Discharged { background:#f3f4f6; color:#374151; }
+    .Critical { background:#fee2e2; color:#991b1b; }
+    
+    /* Quick actions */
+    .quick { background: linear-gradient(90deg,#2563eb,#8b5cf6); padding:20px; border-radius:12px; color:#fff; margin-bottom:30px; }
+    .quick h2 { margin-bottom:15px; }
+    .actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+    .action-btn { background: rgba(255,255,255,0.2); border:none; padding:15px; border-radius:8px; text-align:center; cursor:pointer; transition:0.3s; }
+    .action-btn:hover { background: rgba(255,255,255,0.3); transform:scale(1.05); }
+    
+    /* Footer */
+    .footer { text-align:center; padding:15px; color:#6b7280; border-top:1px solid #e5e7eb; }
+    
+    @media (max-width:1024px) { .charts, .tables { grid-template-columns:1fr; } .stats { grid-template-columns:1fr; } }
+    @media (max-width:768px) { .sidebar { position:fixed; left:-240px; top:0; height:100%; z-index:1000; } .sidebar.open { left:0; } }
+</style>
+</head>
+<body>
+<div class="sidebar" id="sidebar">
+    <div class="logo">🏥 MediCare+</div>
+    <div class="nav-item active" onclick="switchTab('overview', event)">📊 <span class="nav-text">Overview</span></div>
+    <div class="nav-item" onclick="switchTab('patients', event)">👥 <span class="nav-text">Patients</span></div>
+    <div class="nav-item" onclick="switchTab('beds', event)">🛏️ <span class="nav-text">Bed Management</span></div>
+    <div class="nav-item" onclick="switchTab('appointments', event)">📅 <span class="nav-text">Appointments</span></div>
+    <div class="nav-item" onclick="switchTab('staff', event)">👨‍⚕️ <span class="nav-text">Staff</span></div>
+</div>
+
+<div class="main">
+    <div class="top-bar">
+        <div class="search-container">
+            <span class="icon">🔍</span>
+            <input type="text" placeholder="Search...">
+        </div>
+        <div>User</div>
+    </div>
+
+    <div class="content">
+        <h1>🏥 Hospital Dashboard</h1>
+        <p class="subtitle" id="currentDate"></p>
+
+        <div class="stats">
+            <div class="card"><div class="label">Total Patients</div><div class="value">1247</div></div>
+            <div class="card"><div class="label">Available Beds</div><div class="value">42</div></div>
+            <div class="card"><div class="label">Appointments</div><div class="value">156</div></div>
+            <div class="card"><div class="label">Staff on Duty</div><div class="value">87</div></div>
+        </div>
+
+        <div class="charts">
+            <div class="chart-card">
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <canvas id="departmentChart"></canvas>
+            </div>
+        </div>
+
+        <div class="tables">
+            <div class="table-card" id="patientsList"></div>
+            <div class="table-card" id="appointmentsList"></div>
+        </div>
+
+        <div class="quick">
+            <h2>⚡ Quick Actions</h2>
+            <div class="actions">
+                <button class="action-btn">👥 Admit Patient</button>
+                <button class="action-btn">📅 Schedule</button>
+                <button class="action-btn">🛏️ Bed Status</button>
+                <button class="action-btn">🚨 Emergency</button>
+            </div>
+        </div>
+
+        <div class="footer">© 2025 MediCare+ | Version 1.0.0</div>
+    </div>
+</div>
+
+<script>
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+const patients = [
+    {id:'P001',name:'John Smith',age:45,dept:'Cardiology',status:'Admitted',time:'2h ago'},
+    {id:'P002',name:'Sarah Johnson',age:32,dept:'Neurology',status:'Outpatient',time:'3h ago'},
+    {id:'P003',name:'Michael Brown',age:58,dept:'Orthopedics',status:'Surgery',time:'4h ago'},
+    {id:'P004',name:'Emily Davis',age:28,dept:'Pediatrics',status:'Discharged',time:'5h ago'},
+    {id:'P005',name:'David Wilson',age:51,dept:'Emergency',status:'Critical',time:'1h ago'}
+];
+const appointments = [
+    {patient:'Alice Cooper',doctor:'Dr. James',time:'10:00 AM',dept:'Cardiology'},
+    {patient:'Bob Martin',doctor:'Dr. Sarah',time:'11:30 AM',dept:'Neurology'},
+    {patient:'Carol White',doctor:'Dr. Michael',time:'2:00 PM',dept:'Orthopedics'},
+    {patient:'Daniel Lee',doctor:'Dr. Emily',time:'3:30 PM',dept:'Pediatrics'}
+];
+
+function renderPatients() {
+    const container = document.getElementById('patientsList');
+    container.innerHTML = '<h3>Recent Patients</h3>' + patients.map(p=>`
+        <div class="patient-card">
+            <div>${p.name} (${p.age})</div>
+            <div class="status ${p.status}">${p.status}</div>
+        </div>`).join('');
+}
+function renderAppointments() {
+    const container = document.getElementById('appointmentsList');
+    container.innerHTML = '<h3>Upcoming Appointments</h3>' + appointments.map(a=>`
+        <div class="appointment-card">
+            <div>${a.patient}</div>
+            <div>${a.time}</div>
+        </div>`).join('');
+}
+
+let trendChart, departmentChart;
+function initCharts() {
+    const ctx1 = document.getElementById('trendChart').getContext('2d');
+    trendChart = new Chart(ctx1,{type:'line',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Patients',data:[45,52,48,61,55,38,35],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',fill:true,tension:0.4},{label:'Appointments',data:[32,38,35,42,40,28,25],borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.1)',fill:true,tension:0.4}]},options:{responsive:true,maintainAspectRatio:false}});
+    const ctx2 = document.getElementById('departmentChart').getContext('2d');
+    departmentChart = new Chart(ctx2,{type:'doughnut',data:{labels:['Cardiology','Neurology','Orthopedics','Pediatrics','Emergency'],datasets:[{data:[30,25,20,15,10],backgroundColor:['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981']}]},options:{responsive:true,maintainAspectRatio:false}});
+}
+
+function switchTab(tab,event){ const nav = document.querySelectorAll('.nav-item'); nav.forEach(i=>i.classList.remove('active')); if(event) event.currentTarget.classList.add('active'); }
+window.onload = function(){ renderPatients(); renderAppointments(); initCharts(); };
+</script>
+</body>
+</html>
