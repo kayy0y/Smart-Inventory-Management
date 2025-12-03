@@ -37,15 +37,15 @@ if 'purchase_orders' not in st.session_state:
 
 # User credentials (in real app, use secure database)
 users = {
-    'nurse1': {'password': 'nurse121', 'role': 'Nurse', 'name': 'Sister Priya'},
-    'doctor1': {'password': 'doc121', 'role': 'Doctor', 'name': 'Dr. Sharma'},
-    'admin1': {'password': 'admin121', 'role': 'Admin', 'name': 'Hospital Admin1'},
+    'nurse1': {'password': 'nurse123', 'role': 'Nurse', 'name': 'Sister Priya'},
+    'doctor1': {'password': 'doc123', 'role': 'Doctor', 'name': 'Dr. Sharma'},
+    'admin1': {'password': 'admin123', 'role': 'Admin', 'name': 'Hospital Admin1'},
     'nurse2': {'password': 'nurse122', 'role': 'Nurse', 'name': 'Sister P.Kaur'},
     'doctor2': {'password': 'doc122', 'role': 'Doctor', 'name': 'Dr. S.K.Thakur'},
     'admin2': {'password': 'admin122', 'role': 'Admin', 'name': 'Hospital Admin2'},
-    'nurse3': {'password': 'nurse123', 'role': 'Nurse', 'name': 'Sister Shefali'},
-    'doctor3': {'password': 'doc123', 'role': 'Doctor', 'name': 'Dr. A.K.Gupta'},
-    'admin3': {'password': 'admin123', 'role': 'Admin', 'name': 'Hospital Admin3'}
+    'nurse3': {'password': 'nurse121', 'role': 'Nurse', 'name': 'Sister Shefali'},
+    'doctor3': {'password': 'doc121', 'role': 'Doctor', 'name': 'Dr. A.K.Gupta'},
+    'admin3': {'password': 'admin121', 'role': 'Admin', 'name': 'Hospital Admin3'}
 }
 
 def login_page():
@@ -437,4 +437,5 @@ else:
     elif st.session_state.user_role == 'Doctor':
         doctor_dashboard()
     elif st.session_state.user_role == 'Admin':
+
         admin_dashboard()
